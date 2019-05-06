@@ -15,7 +15,6 @@ import time
 import traceback
 import sys
 from flask import Flask, jsonify
-from logging.config import dictConfig
 
 
 app = Flask(__name__)
@@ -27,18 +26,17 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
-ssm_client = boto3.client('ssm')
-response = ssm_client.get_parameter(
-    Name=os.getenv('REDIS_HOST_PARAMETER'),
-    WithDecryption=False
-)
-REDIS_HOST = response['Parameter']['Value']
-
-
 class DB(object):
     """Base class for our Redis shenanigans"""
 
     def __init__(self):
+        ssm_client = boto3.client('ssm')
+        response = ssm_client.get_parameter(
+            Name=os.getenv('REDIS_HOST_PARAMETER'),
+            WithDecryption=False
+        )
+        print(response)
+        REDIS_HOST = response['Parameter']['Value']
         self.db = redis.StrictRedis(host=REDIS_HOST, port=6379, db=0, socket_timeout=2)
 
     def set_time(self):
@@ -78,4 +76,3 @@ def health_check():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
-
