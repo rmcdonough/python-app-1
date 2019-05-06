@@ -5,6 +5,7 @@ Example of a painfully trivial Flask application without setting up uWSGI, and
 otherwise doing dumb things
 """
 
+import boto3
 import logging
 import json_logging
 import os
@@ -26,7 +27,12 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
-REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+ssm_client = boto3.client('ssm')
+response = ssm_client.get_parameter(
+    Name=os.getenv('REDIS_HOST_PARAMETER'),
+    WithDecryption=False
+)
+REDIS_HOST = response['Parameter']['Value']
 
 
 class DB(object):
