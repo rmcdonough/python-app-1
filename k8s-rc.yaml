@@ -1,0 +1,25 @@
+---
+kind: ReplicationController
+apiVersion: v1
+metadata:
+  name: python-app-1
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        role: python-app-1
+    spec:
+      containers:
+        - name: python-app-1
+          imagePullPolicy: Always
+          image: 917550314955.dkr.ecr.us-west-2.amazonaws.com/python-app-1
+          livenessProbe:
+            httpGet:
+              path: /health_check
+              port: 5000
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          env:
+            - name: REDIS_HOST_PARAMETER
+              value: DevOpsDemoRedisHost
