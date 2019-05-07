@@ -2,7 +2,7 @@
 FROM centos:latest
 
 # Install python and pip
-RUN yum install epel-release -y && yum install python-pip -y
+RUN yum install epel-release -y && yum install python-pip -y && yum install python-configparser -y && yum install mysql-devel gcc python-devel python-tools fortune-mod -y
 
 # upgrade pip
 RUN pip install --upgrade pip

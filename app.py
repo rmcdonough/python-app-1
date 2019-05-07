@@ -8,12 +8,14 @@ otherwise doing dumb things
 import boto3
 import logging
 import json_logging
+import MySQLdb
 import os
 import redis
 import socket
 import time
 import traceback
 import sys
+from fortunate import Fortunate
 from flask import Flask, jsonify
 
 
@@ -27,12 +29,11 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
 ssm_client = boto3.client('ssm')
-response = ssm_client.get_parameter(
-    Name=os.getenv('REDIS_HOST_PARAMETER'),
-    WithDecryption=False
-)
-print(response)
-REDIS_HOST = response['Parameter']['Value']
+REDIS_HOST = ssm_client.get_parameter(Name=os.getenv('REDIS_HOST_PARAMETER'), WithDecryption=False)['Parameter']['Value']
+AURORA_HOST = ssm_client.get_parameter(Name=os.getenv('AURORA_HOST_PARAMETER'), WithDecryption=False)['Parameter']['Value']
+AURORA_PASSWORD = ssm_client.get_parameter(Name=os.getenv('AURORA_PASSWORD_PARAMETER'), WithDecryption=False)['Parameter']['Value']
+AURORA_DB = ssm_client.get_parameter(Name=os.getenv('AURORA_DB_PARAMETER'), WithDecryption=False)['Parameter']['Value']
+AURORA_USER = ssm_client.get_parameter(Name=os.getenv('AURORA_USER_PARAMETER'), WithDecryption=False)['Parameter']['Value']
 
 
 class DB(object):
@@ -59,6 +60,35 @@ class DB(object):
             return False
 
 
+class Aurora(object):
+    """Base class for Aurora handling"""
+    
+    def __init__(self):
+        self.db = MySQLdb.connect(host=AURORA_HOST, user=AURORA_USER, passwd=AURORA_PASSWORD, db=AURORA_DB, connect_timeout=2, autocommit=True)
+        
+    def health_check(self):
+        """Check if Aurora is reachable"""
+        try:
+            cur = self.db.cursor()
+            cur.execute('select now()')
+            results = cur.fetchone()
+            cur.close()
+            return True
+        except:
+            return False
+        
+    def insert_notes(self, text):
+        """Inserts arbitrary notes into the hits table"""
+        generator = Fortunate('/usr/share/games/fortune/startrek')
+        cur = self.db.cursor()
+        cur.execute('insert into hits (notes) values (%s)' % MySQLdb.string_literal(generator()))
+        cur.close()
+        
+    def close(self):
+        """Closes the DB connection"""
+        self.db.close()
+
+
 @app.route('/')
 def index():
     db = DB()
@@ -70,9 +100,13 @@ def index():
 @app.route('/health_check')
 def health_check():
     db = DB()
-    if db.health_check() is True:
+    aurora = Aurora()
+    if db.health_check() is True and aurora.health_check() is True:
+        aurora.insert_notes('asdf asdf asdf')
+        aurora.close()
         return jsonify({'status': 'ok', 'backend': socket.gethostname()}), 200
     else:
+        aurora.close()
         return jsonify({'status': 'unavailable', 'backend': socket.gethostname()}), 500
 
 

@@ -2,3 +2,6 @@ flask
 redis
 json_logging
 boto3
+configparser
+MySQL-python
+fortunate
