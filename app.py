@@ -105,8 +105,8 @@ def health_check():
     if db.health_check() is True and aurora.health_check() is True:
         aurora.insert_notes('asdf asdf asdf')
         aurora.close()
-        # return jsonify({'status': 'ok', 'backend': socket.gethostname(), 'message': 'Live long and prosper'}), 200
-        return jsonify({'status': 'ok', 'backend': socket.gethostname()}), 200
+        return jsonify({'status': 'ok', 'backend': socket.gethostname(), 'message': 'Live long and prosper'}), 200
+        # return jsonify({'status': 'ok', 'backend': socket.gethostname()}), 200
     else:
         aurora.close()
         return jsonify({'status': 'unavailable', 'backend': socket.gethostname()}), 500
